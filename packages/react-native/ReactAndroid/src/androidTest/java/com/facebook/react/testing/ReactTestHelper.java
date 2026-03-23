@@ -143,7 +143,7 @@ public class ReactTestHelper {
           public CatalystInstance build() {
             final CatalystInstance instance = builder.build();
             testCase.initializeWithInstance(instance);
-            instance.runJSBundle();
+            instance.runJSBundle(null);
             InstrumentationRegistry.getInstrumentation()
                 .runOnMainSync(
                     new Runnable() {

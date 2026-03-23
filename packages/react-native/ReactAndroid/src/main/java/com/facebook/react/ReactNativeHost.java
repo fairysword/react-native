@@ -10,6 +10,7 @@ package com.facebook.react;
 import android.app.Application;
 import androidx.annotation.Nullable;
 import com.facebook.infer.annotation.Assertions;
+import com.facebook.react.bridge.JSExceptionHandler;
 import com.facebook.react.bridge.JSIModulePackage;
 import com.facebook.react.bridge.JavaScriptExecutorFactory;
 import com.facebook.react.bridge.ReactMarker;
@@ -77,6 +78,7 @@ public abstract class ReactNativeHost {
             .setSurfaceDelegateFactory(getSurfaceDelegateFactory())
             .setLazyViewManagersEnabled(getLazyViewManagersEnabled())
             .setRedBoxHandler(getRedBoxHandler())
+            .setJSExceptionHandler(getJSExceptionHandler())
             .setJavaScriptExecutorFactory(getJavaScriptExecutorFactory())
             .setJSIModulesPackage(getJSIModulePackage())
             .setInitialLifecycleState(LifecycleState.BEFORE_CREATE)
@@ -207,4 +209,9 @@ public abstract class ReactNativeHost {
   protected @Nullable JSEngineResolutionAlgorithm getJSEngineResolutionAlgorithm() {
     return null;
   }
+
+  protected @Nullable JSExceptionHandler getJSExceptionHandler() {
+    return null;
+  }
+
 }

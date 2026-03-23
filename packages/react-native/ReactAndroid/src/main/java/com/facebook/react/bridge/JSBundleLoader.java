@@ -16,6 +16,16 @@ import com.facebook.react.common.DebugServerException;
  */
 public abstract class JSBundleLoader {
 
+  String sourceUrl;
+
+  JSBundleLoader() {
+    this("");
+  }
+
+  JSBundleLoader(String sourceUrl) {
+    this.sourceUrl = sourceUrl;
+  }
+
   /**
    * This loader is recommended one for release version of your app. In that case local JS executor
    * should be used. JS bundle will be read from assets in native code to save on passing large
@@ -23,7 +33,7 @@ public abstract class JSBundleLoader {
    */
   public static JSBundleLoader createAssetLoader(
       final Context context, final String assetUrl, final boolean loadSynchronously) {
-    return new JSBundleLoader() {
+    return new JSBundleLoader(assetUrl) {
       @Override
       public String loadScript(JSBundleLoaderDelegate delegate) {
         delegate.loadScriptFromAssets(context.getAssets(), assetUrl, loadSynchronously);
@@ -42,7 +52,7 @@ public abstract class JSBundleLoader {
 
   public static JSBundleLoader createFileLoader(
       final String fileName, final String assetUrl, final boolean loadSynchronously) {
-    return new JSBundleLoader() {
+    return new JSBundleLoader(fileName) {
       @Override
       public String loadScript(JSBundleLoaderDelegate delegate) {
         delegate.loadScriptFromFile(fileName, assetUrl, loadSynchronously);
@@ -60,7 +70,7 @@ public abstract class JSBundleLoader {
    */
   public static JSBundleLoader createCachedBundleFromNetworkLoader(
       final String sourceURL, final String cachedFileLocation) {
-    return new JSBundleLoader() {
+    return new JSBundleLoader(sourceURL) {
       @Override
       public String loadScript(JSBundleLoaderDelegate delegate) {
         try {
@@ -79,7 +89,7 @@ public abstract class JSBundleLoader {
    */
   public static JSBundleLoader createCachedSplitBundleFromNetworkLoader(
       final String sourceURL, final String cachedFileLocation) {
-    return new JSBundleLoader() {
+    return new JSBundleLoader(sourceURL) {
       @Override
       public String loadScript(JSBundleLoaderDelegate delegate) {
         try {
@@ -98,7 +108,7 @@ public abstract class JSBundleLoader {
    */
   public static JSBundleLoader createRemoteDebuggerBundleLoader(
       final String proxySourceURL, final String realSourceURL) {
-    return new JSBundleLoader() {
+    return new JSBundleLoader(realSourceURL) {
       @Override
       public String loadScript(JSBundleLoaderDelegate delegate) {
         delegate.setSourceURLs(realSourceURL, proxySourceURL);
