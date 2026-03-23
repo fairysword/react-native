@@ -77,7 +77,6 @@ import com.facebook.react.bridge.queue.ReactQueueConfigurationSpec;
 import com.facebook.react.common.LifecycleState;
 import com.facebook.react.common.ReactConstants;
 import com.facebook.react.common.SurfaceDelegateFactory;
-import com.facebook.react.common.annotations.VisibleForTesting;
 import com.facebook.react.config.ReactFeatureFlags;
 import com.facebook.react.devsupport.DevSupportManagerFactory;
 import com.facebook.react.devsupport.ReactInstanceDevHelper;
@@ -111,6 +110,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -188,22 +188,24 @@ public class ReactInstanceManager {
   private List<ViewManager> mViewManagers;
   private boolean mUseFallbackBundle = false;
 
+  private final List<JSBundleLoader> mPendingJSBundleList = new LinkedList<>();
+
   private class ReactContextInitParams {
     private final JavaScriptExecutorFactory mJsExecutorFactory;
-    private final JSBundleLoader mJsBundleLoader;
+    private final List<JSBundleLoader> mJsBundleLoaders;
 
     public ReactContextInitParams(
-        JavaScriptExecutorFactory jsExecutorFactory, JSBundleLoader jsBundleLoader) {
+        JavaScriptExecutorFactory jsExecutorFactory, List<JSBundleLoader> jsBundleLoaders) {
       mJsExecutorFactory = Assertions.assertNotNull(jsExecutorFactory);
-      mJsBundleLoader = Assertions.assertNotNull(jsBundleLoader);
+      mJsBundleLoaders = Assertions.assertNotNull(jsBundleLoaders);
     }
 
     public JavaScriptExecutorFactory getJsExecutorFactory() {
       return mJsExecutorFactory;
     }
 
-    public JSBundleLoader getJsBundleLoader() {
-      return mJsBundleLoader;
+    public List<JSBundleLoader> getJsBundleLoaders() {
+      return mJsBundleLoaders;
     }
   }
 
@@ -489,7 +491,7 @@ public class ReactInstanceManager {
     FLog.d(TAG, "ReactInstanceManager.recreateReactContextInBackgroundFromBundleLoader()");
     PrinterHolder.getPrinter()
         .logMessage(ReactDebugOverlayTags.RN_CORE, "RNCore: load from BundleLoader");
-    recreateReactContextInBackground(mJavaScriptExecutorFactory, mBundleLoader);
+    recreateReactContextInBackground(mJavaScriptExecutorFactory, List.of(mBundleLoader));
   }
 
   /**
@@ -1016,7 +1018,6 @@ public class ReactInstanceManager {
   }
 
   /** @return current ReactApplicationContext */
-  @VisibleForTesting
   public @Nullable ReactContext getCurrentReactContext() {
     synchronized (mReactContextLock) {
       return mCurrentReactContext;
@@ -1036,9 +1037,9 @@ public class ReactInstanceManager {
     FLog.d(ReactConstants.TAG, "ReactInstanceManager.onReloadWithJSDebugger()");
     recreateReactContextInBackground(
         new ProxyJavaScriptExecutor.Factory(jsExecutorFactory),
-        JSBundleLoader.createRemoteDebuggerBundleLoader(
-            mDevSupportManager.getJSBundleURLForRemoteDebugging(),
-            mDevSupportManager.getSourceUrl()));
+      List.of(JSBundleLoader.createRemoteDebuggerBundleLoader(
+        mDevSupportManager.getJSBundleURLForRemoteDebugging(),
+        mDevSupportManager.getSourceUrl())));
   }
 
   @ThreadConfined(UI)
@@ -1049,17 +1050,17 @@ public class ReactInstanceManager {
         JSBundleLoader.createCachedBundleFromNetworkLoader(
             mDevSupportManager.getSourceUrl(), mDevSupportManager.getDownloadedJSBundleFile());
 
-    recreateReactContextInBackground(mJavaScriptExecutorFactory, bundleLoader);
+    recreateReactContextInBackground(mJavaScriptExecutorFactory, List.of(bundleLoader));
   }
 
   @ThreadConfined(UI)
   private void recreateReactContextInBackground(
-      JavaScriptExecutorFactory jsExecutorFactory, JSBundleLoader jsBundleLoader) {
+      JavaScriptExecutorFactory jsExecutorFactory, List<JSBundleLoader> jsBundleLoaders) {
     FLog.d(ReactConstants.TAG, "ReactInstanceManager.recreateReactContextInBackground()");
     UiThreadUtil.assertOnUiThread();
 
     final ReactContextInitParams initParams =
-        new ReactContextInitParams(jsExecutorFactory, jsBundleLoader);
+        new ReactContextInitParams(jsExecutorFactory, jsBundleLoaders);
     if (mCreateReactContextThread == null) {
       runCreateReactContextOnNewThread(initParams);
     } else {
@@ -1110,7 +1111,7 @@ public class ReactInstanceManager {
                   reactApplicationContext =
                       createReactContext(
                           initParams.getJsExecutorFactory().create(),
-                          initParams.getJsBundleLoader());
+                          initParams.getJsBundleLoaders());
                 } catch (Exception e) {
                   // Reset state and bail out. This lets us try again later.
                   mHasStartedCreatingInitialContext = false;
@@ -1173,6 +1174,8 @@ public class ReactInstanceManager {
 
       CatalystInstance catalystInstance =
           Assertions.assertNotNull(reactContext.getCatalystInstance());
+
+      runPendingJSBundle(catalystInstance);
 
       catalystInstance.initialize();
 
@@ -1328,7 +1331,7 @@ public class ReactInstanceManager {
 
   /** @return instance of {@link ReactContext} configured a {@link CatalystInstance} set */
   private ReactApplicationContext createReactContext(
-      JavaScriptExecutor jsExecutor, JSBundleLoader jsBundleLoader) {
+      JavaScriptExecutor jsExecutor, List<JSBundleLoader> jsBundleLoaders) {
     FLog.d(ReactConstants.TAG, "ReactInstanceManager.createReactContext()");
     ReactMarker.logMarker(CREATE_REACT_CONTEXT_START, jsExecutor.getName());
     final ReactApplicationContext reactContext = new ReactApplicationContext(mApplicationContext);
@@ -1344,7 +1347,6 @@ public class ReactInstanceManager {
             .setReactQueueConfigurationSpec(ReactQueueConfigurationSpec.createDefault())
             .setJSExecutor(jsExecutor)
             .setRegistry(nativeModuleRegistry)
-            .setJSBundleLoader(jsBundleLoader)
             .setJSExceptionHandler(exceptionHandler);
 
     ReactMarker.logMarker(CREATE_CATALYST_INSTANCE_START);
@@ -1410,7 +1412,16 @@ public class ReactInstanceManager {
 
     ReactMarker.logMarker(ReactMarkerConstants.PRE_RUN_JS_BUNDLE_START);
     Systrace.beginSection(TRACE_TAG_REACT_JAVA_BRIDGE, "runJSBundle");
-    catalystInstance.runJSBundle();
+
+    // catalystInstance.runJSBundle();
+    if(jsBundleLoaders != null && !jsBundleLoaders.isEmpty()) {
+      for(JSBundleLoader loader: jsBundleLoaders) {
+        catalystInstance.runJSBundle(loader);
+      }
+    }
+
+    runPendingJSBundle(catalystInstance);
+
     Systrace.endSection(TRACE_TAG_REACT_JAVA_BRIDGE);
 
     return reactContext;
@@ -1471,4 +1482,25 @@ public class ReactInstanceManager {
     }
     SystraceMessage.endSection(TRACE_TAG_REACT_JAVA_BRIDGE).flush();
   }
+
+  public void runJsBundle(JSBundleLoader loader) {
+    if(mCurrentReactContext != null) {
+      //noinspection DataFlowIssue
+      mCurrentReactContext.getCatalystInstance().runJSBundle(loader);
+      return;
+    }
+    synchronized (this.mPendingJSBundleList) {
+      mPendingJSBundleList.add(loader);
+    }
+  }
+
+  private void runPendingJSBundle(CatalystInstance catalystInstance) {
+    synchronized (mPendingJSBundleList) {
+      for(JSBundleLoader loader: mPendingJSBundleList) {
+        catalystInstance.runJSBundle(loader);
+      }
+      mPendingJSBundleList.clear();
+    }
+  }
+
 }

@@ -12,6 +12,8 @@ import static com.facebook.systrace.Systrace.TRACE_TAG_REACT_JAVA_BRIDGE;
 
 import android.content.res.AssetManager;
 import android.os.AsyncTask;
+import android.text.TextUtils;
+
 import androidx.annotation.Nullable;
 import com.facebook.common.logging.FLog;
 import com.facebook.infer.annotation.Assertions;
@@ -36,6 +38,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -98,7 +101,6 @@ public class CatalystInstanceImpl implements CatalystInstance {
   private boolean mInitialized = false;
   private volatile boolean mAcceptCalls = false;
 
-  private boolean mJSBundleHasLoaded;
   private @Nullable String mSourceURL;
 
   private JavaScriptContextHolder mJavaScriptContextHolder;
@@ -113,6 +115,8 @@ public class CatalystInstanceImpl implements CatalystInstance {
   public native CallInvokerHolderImpl getJSCallInvokerHolder();
 
   public native CallInvokerHolderImpl getNativeCallInvokerHolder();
+
+  private final List<JSBundleLoader> mLoadedBundleList = new CopyOnWriteArrayList<>();
 
   private CatalystInstanceImpl(
       final ReactQueueConfigurationSpec reactQueueConfigurationSpec,
@@ -261,11 +265,21 @@ public class CatalystInstanceImpl implements CatalystInstance {
       String fileName, String sourceURL, boolean loadSynchronously);
 
   @Override
-  public void runJSBundle() {
+  public void runJSBundle(JSBundleLoader jsBundleLoader) {
     FLog.d(ReactConstants.TAG, "CatalystInstanceImpl.runJSBundle()");
-    Assertions.assertCondition(!mJSBundleHasLoaded, "JS bundle was already loaded!");
     // incrementPendingJSCalls();
-    mJSBundleLoader.loadScript(CatalystInstanceImpl.this);
+
+    if (jsBundleLoader == null || TextUtils.isEmpty(jsBundleLoader.sourceUrl)) {
+      return;
+    }
+
+    synchronized (mLoadedBundleList) {
+      if(hasRunJSBundle(jsBundleLoader)) {
+        return;
+      }
+      jsBundleLoader.loadScript(this);
+      mLoadedBundleList.add(jsBundleLoader);
+    }
 
     synchronized (mJSCallsPendingInitLock) {
 
@@ -278,7 +292,6 @@ public class CatalystInstanceImpl implements CatalystInstance {
         function.call(this);
       }
       mJSCallsPendingInit.clear();
-      mJSBundleHasLoaded = true;
     }
 
     // This is registered after JS starts since it makes a JS call
@@ -286,10 +299,18 @@ public class CatalystInstanceImpl implements CatalystInstance {
   }
 
   @Override
-  public boolean hasRunJSBundle() {
-    synchronized (mJSCallsPendingInitLock) {
-      return mJSBundleHasLoaded && mAcceptCalls;
+  public boolean hasRunJSBundle(JSBundleLoader jsBundleLoader) {
+    if (jsBundleLoader == null) {
+      return false;
     }
+    synchronized (mLoadedBundleList) {
+      for (JSBundleLoader loader: mLoadedBundleList) {
+        if(Objects.equals(loader.sourceUrl, jsBundleLoader.sourceUrl) && mAcceptCalls) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   @Override
@@ -624,7 +645,7 @@ public class CatalystInstanceImpl implements CatalystInstance {
             new Runnable() {
               @Override
               public void run() {
-                destroy();
+                // destroy();
               }
             });
   }

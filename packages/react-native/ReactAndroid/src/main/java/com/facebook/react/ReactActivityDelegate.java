@@ -33,7 +33,7 @@ public class ReactActivityDelegate {
 
   private @Nullable PermissionListener mPermissionListener;
   private @Nullable Callback mPermissionsCallback;
-  private ReactDelegate mReactDelegate;
+  protected ReactDelegate mReactDelegate;
 
   @Deprecated
   public ReactActivityDelegate(Activity activity, @Nullable String mainComponentName) {

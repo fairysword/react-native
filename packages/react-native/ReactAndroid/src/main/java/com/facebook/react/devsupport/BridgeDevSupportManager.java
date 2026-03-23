@@ -63,7 +63,7 @@ import java.util.concurrent.TimeoutException;
  * {@code <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" android:exported="false"/>}
  * {@code <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>}
  */
-public final class BridgeDevSupportManager extends DevSupportManagerBase {
+public class BridgeDevSupportManager extends DevSupportManagerBase {
   private boolean mIsSamplingProfilerEnabled = false;
   private ReactInstanceDevHelper mReactInstanceManagerHelper;
   private @Nullable DevLoadingViewManager mDevLoadingViewManager;
