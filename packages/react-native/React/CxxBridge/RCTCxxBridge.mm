@@ -1089,7 +1089,6 @@ struct RCTInstanceCallback : public InstanceCallback {
   [self.devSettings setupHMRClientWithBundleURL:self.bundleURL];
 }
 
-#if RCT_DEV_MENU | RCT_PACKAGER_LOADING_FUNCTIONALITY
 - (void)loadAndExecuteSplitBundleURL:(NSURL *)bundleURL
                              onError:(RCTLoadAndExecuteErrorBlock)onError
                           onComplete:(dispatch_block_t)onComplete
@@ -1112,18 +1111,20 @@ struct RCTInstanceCallback : public InstanceCallback {
         [self enqueueApplicationScript:source.data
                                    url:source.url
                             onComplete:^{
+#if RCT_DEV_MENU | RCT_PACKAGER_LOADING_FUNCTIONALITY
                               [self.devSettings setupHMRClientWithAdditionalBundleURL:source.url];
+#endif                              
                               onComplete();
                             }];
       }];
 }
-#else
-- (void)loadAndExecuteSplitBundleURL:(NSURL *)bundleURL
-                             onError:(RCTLoadAndExecuteErrorBlock)onError
-                          onComplete:(dispatch_block_t)onComplete
-{
-}
-#endif
+// #else
+// - (void)loadAndExecuteSplitBundleURL:(NSURL *)bundleURL
+//                              onError:(RCTLoadAndExecuteErrorBlock)onError
+//                           onComplete:(dispatch_block_t)onComplete
+// {
+// }
+// #endif
 
 - (void)handleError:(NSError *)error
 {
