@@ -230,7 +230,17 @@ public class UIImplementation {
     }
 
     synchronized (uiImplementationThreadLock) {
-      ReactShadowNode cssNode = createShadowNode(className);
+      ReactShadowNode cssNode = mShadowNodeRegistry.getNode(tag);
+      if (cssNode != null && rootViewTag == cssNode.getRootTag()) {
+        ReactStylesDiffMap styles;
+        if (props != null) {
+          styles = new ReactStylesDiffMap(props);
+          cssNode.updateProperties(styles);
+        }
+        return;
+      }
+
+      cssNode = createShadowNode(className);
       ReactShadowNode rootNode = mShadowNodeRegistry.getNode(rootViewTag);
       Assertions.assertNotNull(rootNode, "Root node with tag " + rootViewTag + " doesn't exist");
       cssNode.setReactTag(tag); // Thread safety needed here
@@ -428,6 +438,7 @@ public class UIImplementation {
     }
 
     synchronized (uiImplementationThreadLock) {
+      WritableArray copyTags = Arguments.createArray();
       ReactShadowNode cssNodeToManage = mShadowNodeRegistry.getNode(viewTag);
 
       for (int i = 0; i < childrenTags.size(); i++) {
@@ -436,7 +447,18 @@ public class UIImplementation {
           throw new IllegalViewOperationException(
               "Trying to add unknown view tag: " + childrenTags.getInt(i));
         }
-        cssNodeToManage.addChildAt(cssNodeToAdd, i);
+        if (cssNodeToAdd.getParent() != null) {
+          if (cssNodeToAdd.getParent() != cssNodeToManage) {
+            // 将节点从原父节点移除
+            cssNodeToAdd.getParent().removeChildAt(cssNodeToAdd.getParent().indexOf(cssNodeToAdd));
+            mNativeViewHierarchyOptimizer.removeNodeFromParent(cssNodeToAdd, false);
+            copyTags.pushInt(childrenTags.getInt(i));
+            cssNodeToManage.addChildAt(cssNodeToAdd, i);
+          }
+        } else {
+          copyTags.pushInt(childrenTags.getInt(i));
+          cssNodeToManage.addChildAt(cssNodeToAdd, i);
+        }
       }
 
       mNativeViewHierarchyOptimizer.handleSetChildren(cssNodeToManage, childrenTags);
