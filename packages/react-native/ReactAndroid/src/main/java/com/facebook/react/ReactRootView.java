@@ -1029,6 +1029,26 @@ public class ReactRootView extends FrameLayout implements RootView, ReactRoot {
 
     private void checkForDeviceDimensionsChanges() {
       // DeviceInfoModule caches the last dimensions emitted to JS, so we don't need to check here.
+      // 使用实际的像素值(mLastWidth, mLastHeight), 而不是 MeasureSpec
+      // 因为MeasureSpec包含 mode 和 size，不是纯像素值
+      int actualWidth = getWidth();
+      int actualHeight = getHeight();
+
+      // 如果 view 还没有测量完成
+      if (actualWidth <= 0) {
+        actualWidth = mLastWidth;
+      }
+      if (actualHeight <= 0) {
+        actualHeight = mLastHeight;
+      }
+
+      // 检查并更新 DisplayMetrics
+      if (actualWidth > 0 && DisplayMetricsHolder.getWindowDisplayMetrics().widthPixels != actualWidth) {
+        DisplayMetricsHolder.getWindowDisplayMetrics().widthPixels = actualWidth;
+      }
+      if (actualHeight > 0 && DisplayMetricsHolder.getWindowDisplayMetrics().heightPixels != actualHeight) {
+        DisplayMetricsHolder.getWindowDisplayMetrics().heightPixels = actualHeight;
+      }
       emitUpdateDimensionsEvent();
     }
 
