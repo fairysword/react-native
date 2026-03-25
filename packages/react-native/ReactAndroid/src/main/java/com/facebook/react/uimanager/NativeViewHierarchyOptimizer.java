@@ -270,7 +270,7 @@ public class NativeViewHierarchyOptimizer {
    * hosting its own children (e.g. layout-only or NativeKind.LEAF), we need to recursively remove
    * all its children from their native parents.
    */
-  private void removeNodeFromParent(ReactShadowNode nodeToRemove, boolean shouldDelete) {
+  public void removeNodeFromParent(ReactShadowNode nodeToRemove, boolean shouldDelete) {
     if (nodeToRemove.getNativeKind() != NativeKind.PARENT) {
       for (int i = nodeToRemove.getChildCount() - 1; i >= 0; i--) {
         removeNodeFromParent(nodeToRemove.getChildAt(i), shouldDelete);
