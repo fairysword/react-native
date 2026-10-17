@@ -10,6 +10,11 @@
 #import "NativeExampleViews/FlexibleSizeExampleView.h"
 #import "NativeExampleViews/UpdatePropertiesExampleView.h"
 
+#if DEBUG && __has_include("DevLoadingViewRepro.h")
+#import "DevLoadingViewRepro.h"
+#define RCT_DEV_LOADING_REPRO 1
+#endif
+
 #import <React/RCTBundleURLProvider.h>
 #import <React/RCTDefines.h>
 #import <React/RCTLinkingManager.h>
@@ -54,6 +59,12 @@ static NSString *const kBundlePath = @"js/RNTesterApp.ios";
 
 #if __has_include(<ReactAppDependencyProvider/RCTAppDependencyProvider.h>)
   self.dependencyProvider = [[RCTAppDependencyProvider alloc] init];
+#endif
+
+#if RCT_DEV_LOADING_REPRO
+  if (RCTStartDevLoadingInvalidationRepro(self, (UIWindowScene *)scene)) {
+    return;
+  }
 #endif
 
   self.reactNativeFactory = [[RCTReactNativeFactory alloc] initWithDelegate:self releaseLevel:[self releaseLevel]];
