@@ -26,6 +26,7 @@ import com.facebook.react.modules.network.CookieJarContainer
 import com.facebook.react.modules.network.ForwardingCookieHandler
 import com.facebook.react.modules.network.OkHttpClientProvider
 import com.facebook.react.turbomodule.core.interfaces.TurboModule
+import com.facebook.react.views.image.ImageDeliveryBeforeDrawControllerFactory
 import okhttp3.JavaNetCookieJar
 
 /**
@@ -78,6 +79,9 @@ constructor(
     if (!hasBeenInitialized()) {
       val pipelineConfig = config ?: getDefaultConfig(reactContext)
       val draweeConfigBuilder = DraweeConfig.newBuilder()
+      draweeConfigBuilder.setPipelineDraweeControllerFactory(
+          ImageDeliveryBeforeDrawControllerFactory()
+      )
       Fresco.initialize(
           reactContext.applicationContext,
           pipelineConfig,

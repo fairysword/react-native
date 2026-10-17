@@ -373,6 +373,11 @@ public class ReactImageView(
     this.headers = headers
   }
 
+  protected override fun onAttachedToWindow() {
+    super.onAttachedToWindow()
+    ImageDeliveryBeforeDraw.ensurePreDrawHook(this)
+  }
+
   // Disable rasterizing to offscreen layer in order to preserve background effects like box-shadow
   // or outline which may draw outside of bounds.
   public override fun hasOverlappingRendering(): Boolean = false
@@ -616,7 +621,7 @@ public class ReactImageView(
       hierarchy.setProgressBarImage(downloadListener)
     }
 
-    controller = builder.build()
+    controller = builder.build().also(ImageDeliveryBeforeDraw::enableFor)
 
     // Reset again so the DraweeControllerBuilder clears all it's references. Otherwise, this causes
     // a memory leak.
