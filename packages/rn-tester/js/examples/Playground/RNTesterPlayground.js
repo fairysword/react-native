@@ -10,29 +10,74 @@
 
 import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
-import RNTesterText from '../../components/RNTesterText';
 import * as React from 'react';
-import {StyleSheet, View} from 'react-native';
+import {Button, Modal, StyleSheet, Text, View} from 'react-native';
 
 function Playground() {
+  const [visible, setVisible] = React.useState(false);
   return (
     <View style={styles.container}>
-      <RNTesterText>
-        Edit "RNTesterPlayground.js" to change this file
-      </RNTesterText>
+      <Text style={styles.title}>Dark app, light system theme</Text>
+      <Text style={styles.text}>
+        Keep the system in light mode with 3-button navigation. The app draws a
+        black navigation bar with light buttons. Opening the modal below should
+        leave the navigation bar unchanged.
+      </Text>
+      <Button title="Open modal" onPress={() => setVisible(true)} />
+      <Modal
+        visible={visible}
+        transparent
+        statusBarTranslucent
+        onRequestClose={() => setVisible(false)}>
+        <View style={styles.scrim}>
+          <View style={styles.sheet}>
+            <Text style={styles.title}>Rules</Text>
+            <Text style={styles.text}>
+              A transparent bottom sheet Modal. The navigation bar should stay
+              black with light buttons.
+            </Text>
+            <Button title="Close modal" onPress={() => setVisible(false)} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 10,
+    flex: 1,
+    padding: 16,
+    gap: 12,
+    backgroundColor: '#202020',
+  },
+  title: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  text: {
+    color: 'white',
+    fontSize: 16,
+  },
+  scrim: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: '#00000099',
+  },
+  sheet: {
+    padding: 24,
+    paddingBottom: 64,
+    gap: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: '#131313',
   },
 });
 
 export default {
   title: 'Playground',
   name: 'playground',
-  description: 'Test out new features and ideas.',
+  description: 'A transparent Modal changes a dark app navigation bar.',
   render: (): React.Node => <Playground />,
 } as RNTesterModuleExample;

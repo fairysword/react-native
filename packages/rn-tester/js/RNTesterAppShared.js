@@ -40,7 +40,6 @@ import {
   StatusBar,
   StyleSheet,
   View,
-  useColorScheme,
   useWindowDimensions,
 } from 'react-native';
 
@@ -96,7 +95,6 @@ const RNTesterApp = ({
     RNTesterNavigationReducer,
     initialNavigationState,
   );
-  const colorScheme = useColorScheme();
   const [contentInsets, setContentInsets] = useState<ContentInsets>(NO_INSETS);
 
   const {
@@ -265,7 +263,8 @@ const RNTesterApp = ({
     return () => subscription.remove();
   }, [handleOpenUrlRequest]);
 
-  const theme = colorScheme === 'dark' ? themes.dark : themes.light;
+  // Repro: the app is always dark, independent of the system theme.
+  const theme = themes.dark;
 
   if (examplesList === null) {
     return null;
@@ -368,7 +367,8 @@ const RNTesterApp = ({
 
   return (
     <RNTesterThemeContext.Provider value={theme}>
-      {Platform.OS === 'android' ? <StatusBar barStyle="dark-content" /> : null}
+      {/* Repro: light status bar icons on the dark window background. */}
+      {Platform.OS === 'android' ? <StatusBar barStyle="light-content" /> : null}
       {titleBar}
       {content}
       {!shouldHideChrome && (

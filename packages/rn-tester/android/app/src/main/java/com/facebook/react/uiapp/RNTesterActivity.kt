@@ -15,6 +15,7 @@ import android.widget.FrameLayout
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.facebook.react.FBRNTesterEndToEndHelper
 import com.facebook.react.ReactActivity
 import com.facebook.react.defaults.DefaultReactActivityDelegate
@@ -46,9 +47,9 @@ internal open class RNTesterActivity : ReactActivity() {
 
   // set background color so it will show below transparent system bars on forced edge-to-edge
   private fun maybeUpdateBackgroundColor() {
-    val isDarkMode =
-        resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
-            Configuration.UI_MODE_NIGHT_YES
+    // Repro: the status bar area shows this window background, so keep it dark to match the
+    // always-dark JS theme while the system stays in light mode.
+    val isDarkMode = true
 
     val color =
         if (isDarkMode) {
@@ -60,11 +61,16 @@ internal open class RNTesterActivity : ReactActivity() {
     window?.setBackgroundDrawable(color.toDrawable())
   }
 
+  @Suppress("DEPRECATION")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
     fullyDrawnReporter.addReporter()
     maybeUpdateBackgroundColor()
+
+    // Repro: a dark app navigation bar with light buttons, set after RN's edge-to-edge setup.
+    window.navigationBarColor = Color.BLACK
+    WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightNavigationBars = false
 
     reactDelegate?.reactHost?.let { reactHost ->
       val devMenuConfiguration =
