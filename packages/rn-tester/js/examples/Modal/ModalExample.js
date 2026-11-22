@@ -10,6 +10,7 @@
 
 import type {RNTesterModuleExample} from '../../types/RNTesterTypes';
 
+import ModalInitialLayout from './ModalInitialLayout';
 import ModalOnShow from './ModalOnShow';
 import ModalPresentation from './ModalPresentation';
 
@@ -20,6 +21,7 @@ export const category = 'UI';
 export const documentationURL = 'https://reactnative.dev/docs/modal';
 export const description = 'Component for presenting modal views.';
 export const examples: Array<RNTesterModuleExample> = [
+  ModalInitialLayout,
   ModalPresentation,
   ModalOnShow,
 ];
